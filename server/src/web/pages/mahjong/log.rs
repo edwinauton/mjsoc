@@ -12,7 +12,7 @@ use crate::{
         sqlite::{
             logs::LogMutation, logs::LogMutator, members::MemberMutation, members::MembersMutator,
         },
-        structs::{Log, LogId, MemberId},
+        structs::{Faan, Log, LogId, MemberId},
     },
     AppState,
 };
@@ -65,6 +65,34 @@ pub async fn transfer_points(
         return e.handle();
     }
 
+    // PENALTY SPECIAL CASE
+    if matches!(body.faan, Some(Faan(-10))) {
+        for l in body.from.clone() {
+            if let Err(e) = data
+                .mahjong_data
+                .mut_member(l, MemberMutation::AddPoints(16))
+                .await
+            {
+                return e.handle();
+            }
+        }
+        if let Err(e) = data
+            .mahjong_data
+            .mut_member(body.to, MemberMutation::AddPoints(-256))
+            .await
+        {
+            return e.handle();
+        };
+        return match data
+            .mahjong_data
+            .get_members(Some([body.from.clone(), [body.to].to_vec()].concat()))
+            .await
+        {
+            Ok(r) => HttpResponse::Ok().json(r),
+            Err(e) => e.handle(),
+        };
+    }
+
     for l in body.from.clone() {
         if let Err(e) = data
             .mahjong_data
@@ -113,6 +141,50 @@ pub async fn put_log(
         Err(e) => return e.handle(),
     };
     let mut affected_members: Vec<MemberId> = Vec::new();
+
+    // PENALTY SPECIAL CASE
+    if matches!(log.faan, Some(Faan(-10))) {
+        for mid in log.from.clone() {
+            if let Err(e) = data
+                .mahjong_data
+                .mut_member(
+                    mid,
+                    MemberMutation::AddPoints(-16)
+                )
+                .await
+            {
+                return e.handle();
+            }
+            affected_members.push(mid);
+        }
+        if let Err(e) = data
+            .mahjong_data
+            .mut_member(
+                log.to,
+                MemberMutation::AddPoints(256),
+            )
+            .await
+        {
+            return e.handle();
+        }
+        affected_members.push(log.to);
+        if let Err(e) = data
+            .mahjong_data
+            .mut_log(LogMutation::ToggleDisabled {
+                log_id: body.id,
+                new_value: Some(!log.disabled),
+            })
+            .await
+        {
+            return e.handle();
+        }
+        let affected_members = match data.mahjong_data.get_members(Some(affected_members)).await {
+            Ok(r) => r,
+            Err(e) => return e.handle(),
+        };
+        return HttpResponse::Ok().json(affected_members);
+    }
+
     // if log was enabled (i.e. undoing it), pay back the points; otherwise redo
     for mid in log.from.clone() {
         if let Err(e) = data

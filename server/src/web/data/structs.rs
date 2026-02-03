@@ -157,7 +157,7 @@ impl Log {
 
 #[derive(Debug, Clone, Serialize, Deserialize, sqlx::Type)]
 #[sqlx(transparent)]
-pub struct Faan(i8);
+pub struct Faan(pub i8);
 
 impl Faan {
     // the base point amount is the amount a player loses from another's self-draw (zimo)
@@ -172,7 +172,7 @@ impl Faan {
             8 => Some(64),
             9 => Some(96),
             10 => Some(128),
-            -10 => Some(-128), // penalty
+            -10 => Some(-16), // penalty
             _ => None,
         }
     }
