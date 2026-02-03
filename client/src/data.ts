@@ -132,7 +132,7 @@ POINTS.set(10, 128);
 POINTS.set(11, 192);
 POINTS.set(12, 256);
 POINTS.set(13, 384);
-POINTS.set(-10, -128);
+POINTS.set(-10, -16);
 
 export function isWind(s: string | null): s is Wind {
     if (s && ['east', 'south', 'west', 'north'].includes(s)) {

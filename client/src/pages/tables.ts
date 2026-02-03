@@ -207,9 +207,15 @@ class GameTable extends InputListener<'table'> {
     animatePointTransfer(ev: CustomEvent<Log>) {
         let winner = this.findPlayerTag(ev.detail.to);
         if (!winner) return;
-        pointBounce(winner, ev.detail.points * ev.detail.from.length, {
-            wind: winner.seat,
-        });
+        if (ev.detail.faan === -10){
+            pointBounce(winner, -256, {
+                wind: winner.seat,
+            });
+        } else {
+            pointBounce(winner, ev.detail.points * ev.detail.from.length, {
+                wind: winner.seat,
+            });
+        }
         let loserId: MemberId;
         for (loserId of ev.detail.from) {
             let loser = this.findPlayerTag(loserId);
